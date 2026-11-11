@@ -62,6 +62,14 @@
   }
   .tabs button[aria-pressed="true"] { background: var(--tab-active); color: var(--tab-active-text); border-color: var(--tab-active); }
 
+  .sens { display: inline-flex; margin-top: 24px; padding: 3px; border-radius: 12px; background: var(--border); }
+  .sens button {
+    font: inherit; font-size: 14px; font-weight: 600; cursor: pointer; border: 0;
+    padding: 8px 18px; border-radius: 9px; background: transparent; color: var(--text-2);
+  }
+  .sens button[aria-pressed="true"] { background: var(--surface); color: var(--text); box-shadow: 0 1px 3px rgb(0 0 0 / 0.12); }
+  .sens + .tabs { margin-top: 12px; }
+
   .tiles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 16px; }
   .tile { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 16px; }
   .tile .label { font-size: 13px; color: var(--text-2); }
@@ -109,15 +117,20 @@
 <body>
 <main>
   <header>
-    <h1>Temps de trajet A → B</h1>
-    <p id="sous-titre">Départs de 7h00 à 8h00, en voiture</p>
+    <h1 id="titre">Temps de trajet</h1>
+    <p id="sous-titre">En voiture</p>
   </header>
+
+  <div class="sens" role="group" aria-label="Sens du trajet" id="sens">
+    <button data-sens="aller">Aller A → B</button>
+    <button data-sens="retour">Retour B → A</button>
+  </div>
 
   <div class="tabs" role="group" aria-label="Jour" id="tabs"></div>
 
   <div class="tiles">
     <div class="tile"><div class="label">Meilleur départ (typique)</div><div class="value" id="t-best">–</div><div class="sub" id="t-best-sub"></div></div>
-    <div class="tile"><div class="label">Partir à 8h00 plutôt qu'à 7h00</div><div class="value" id="t-delta">–</div><div class="sub">en temps typique</div></div>
+    <div class="tile"><div class="label" id="t-delta-label"></div><div class="value" id="t-delta">–</div><div class="sub">en temps typique</div></div>
     <div class="tile"><div class="label">Réel vs typique (moyenne)</div><div class="value" id="t-reel">–</div><div class="sub" id="t-reel-sub"></div></div>
   </div>
 
@@ -143,7 +156,10 @@
 
 <script>
 const JOURS = ["lundi", "mardi", "mercredi", "jeudi", "vendredi", "samedi"];
-const CRENEAUX = ["07:00", "07:10", "07:20", "07:30", "07:40", "07:50", "08:00"];
+const SENS = {
+  aller: { titre: "Aller A → B", creneaux: ["07:00", "07:10", "07:20", "07:30", "07:40", "07:50", "08:00"] },
+  retour: { titre: "Retour B → A", creneaux: ["18:00", "18:10", "18:20", "18:30", "18:40", "18:50", "19:00"] },
+};
 const heure = c => c.replace(/^0/, "").replace(":", "h");
 const fmt = v => v == null ? "–" : v.toFixed(1).replace(".", ",");
 const fmtMin = v => v == null ? "–" : `${Math.round(v)} min`;
@@ -155,7 +171,9 @@ const arrivee = (creneau, minutes) => {
   return `${Math.floor(t / 60)}h${String(t % 60).padStart(2, "0")}`;
 };
 
-let donnees, mesures = [], jourActif = "semaine";
+let donnees, mesures = [], jourActif = "semaine", sensActif = location.hash.slice(1) in SENS ? location.hash.slice(1) : new Date().getHours() < 13 ? "aller" : "retour";
+const CRENEAUX = () => SENS[sensActif].creneaux;
+const trajet = () => donnees[sensActif];
 
 async function charger() {
   donnees = await (await fetch("typiques.json", { cache: "no-store" })).json();
@@ -168,8 +186,6 @@ async function charger() {
     }
   } catch (e) { /* pas encore de mesures */ }
 
-  document.getElementById("sous-titre").textContent =
-    `Départs de 7h00 à 8h00, en voiture · ${fmt(donnees.distance_km)} km`;
   const jours = [...new Set(mesures.map(m => m.date))];
   document.getElementById("footer").textContent =
     `Typique : historique du trafic TomTom (calculé le ${donnees.genere_le}). ` + (mesures.length
@@ -184,6 +200,7 @@ async function charger() {
     b.dataset.jour = j;
     tabs.appendChild(b);
   }
+  document.querySelectorAll("#sens button").forEach(b => b.onclick = () => { sensActif = b.dataset.sens; history.replaceState(null, "", "#" + sensActif); rendre(); });
   const auj = JOURS[(new Date().getDay() + 6) % 7];
   if (auj) jourActif = auj;
   rendre();
@@ -193,14 +210,20 @@ async function charger() {
 
 function serie(jour) {
   const jours = jour === "semaine" ? JOURS : [jour];
-  return CRENEAUX.map(c => {
-    const typ = moyenne(jours.map(j => donnees.typiques[j]?.[c]).filter(v => v != null));
-    const reels = mesures.filter(m => jours.includes(m.jour) && m.creneau === c).map(m => +m.reel_min);
+  return CRENEAUX().map(c => {
+    const typ = moyenne(jours.map(j => trajet().typiques[j]?.[c]).filter(v => v != null));
+    const reels = mesures.filter(m => m.sens === sensActif && jours.includes(m.jour) && m.creneau === c).map(m => +m.reel_min);
     return { creneau: c, typique: typ, reel: moyenne(reels), n: reels.length };
   });
 }
 
 function rendre() {
+  document.querySelectorAll("#sens button").forEach(b => b.setAttribute("aria-pressed", b.dataset.sens === sensActif));
+  const [premier, dernier] = [CRENEAUX()[0], CRENEAUX().at(-1)].map(heure);
+  document.getElementById("titre").textContent = SENS[sensActif].titre;
+  document.getElementById("sous-titre").textContent =
+    `Départs de ${premier} à ${dernier}, en voiture · ${fmt(trajet().distance_km)} km`;
+  document.getElementById("t-delta-label").textContent = `Partir à ${dernier} plutôt qu'à ${premier}`;
   document.querySelectorAll("#tabs button").forEach(b => b.setAttribute("aria-pressed", b.dataset.jour === jourActif));
   const pts = serie(jourActif);
 
@@ -228,9 +251,9 @@ function dessiner(pts) {
   const m = { t: 28, r: W < 600 ? 14 : 20, b: 36, l: 40 };
   svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
   const etroit = W < 600;
-  const valeurs = pts.flatMap(p => [p.typique, p.reel]).filter(v => v != null).concat(donnees.sans_trafic_min);
+  const valeurs = pts.flatMap(p => [p.typique, p.reel]).filter(v => v != null).concat(trajet().sans_trafic_min);
   const yMin = Math.floor(Math.min(...valeurs) / 5) * 5, yMax = Math.ceil(Math.max(...valeurs) / 5) * 5;
-  const x = i => m.l + i * (W - m.l - m.r) / (CRENEAUX.length - 1);
+  const x = i => m.l + i * (W - m.l - m.r) / (CRENEAUX().length - 1);
   const y = v => m.t + (yMax - v) * (H - m.t - m.b) / (yMax - yMin);
   const ligne = (cle) => {
     let d = "", debut = true;
@@ -246,13 +269,13 @@ function dessiner(pts) {
     s += `<line class="gridline" x1="${m.l}" x2="${W - m.r}" y1="${y(v)}" y2="${y(v)}"/>`;
     s += `<text x="${m.l - 10}" y="${y(v) + 4}" text-anchor="end">${v}</text>`;
   }
-  CRENEAUX.forEach((c, i) => {
+  CRENEAUX().forEach((c, i) => {
     if (etroit && i % 2) return;
     s += `<text x="${x(i)}" y="${H - 10}" text-anchor="${i === 0 ? "start" : i === 6 ? "end" : "middle"}">${heure(c)}</text>`;
   });
   s += `<text x="${m.l - 10}" y="${m.t - 14}" text-anchor="end">min</text></g>`;
 
-  s += `<line x1="${m.l}" x2="${W - m.r}" y1="${y(donnees.sans_trafic_min)}" y2="${y(donnees.sans_trafic_min)}" stroke="var(--muted)" stroke-width="1.5" stroke-dasharray="5 5"/>`;
+  s += `<line x1="${m.l}" x2="${W - m.r}" y1="${y(trajet().sans_trafic_min)}" y2="${y(trajet().sans_trafic_min)}" stroke="var(--muted)" stroke-width="1.5" stroke-dasharray="5 5"/>`;
   s += `<path d="${ligne("typique")}" fill="none" stroke="var(--typique)" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>`;
   s += `<path d="${ligne("reel")}" fill="none" stroke="var(--reel)" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>`;
   pts.forEach((p, i) => {
@@ -261,7 +284,7 @@ function dessiner(pts) {
   });
 
   s += `<line id="cross" class="crosshair" y1="${m.t}" y2="${H - m.b}" visibility="hidden"/>`;
-  const pas = (W - m.l - m.r) / (CRENEAUX.length - 1);
+  const pas = (W - m.l - m.r) / (CRENEAUX().length - 1);
   pts.forEach((_, i) => s += `<rect data-i="${i}" x="${x(i) - pas / 2}" y="0" width="${pas}" height="${H}" fill="transparent"/>`);
 
   svg.innerHTML = s;
