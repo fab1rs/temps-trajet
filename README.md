@@ -20,3 +20,8 @@ Secrets du dépôt (*Settings → Secrets and variables → Actions*) :
 | `DESTINATION` | `48.8925,2.2369` |
 
 Test : onglet *Actions → Mesure temps de trajet → Run workflow* (fait une mesure immédiate).
+
+## Page web
+
+`index.html` affiche les temps typiques et réels par heure de départ, avec un onglet par jour.
+Les temps typiques (`typiques.json`) sont recalculés le 1er de chaque mois par `typiques.py`.

@@ -25,7 +25,7 @@ COLONNES = ["date", "jour", "creneau", "heure_mesure", "reel_min", "typique_min"
 JOURS = ["lundi", "mardi", "mercredi", "jeudi", "vendredi", "samedi", "dimanche"]
 
 
-def appeler_tomtom(origine, destination, cle):
+def appeler_tomtom(origine, destination, cle, depart="now"):
     url = (f"https://api.tomtom.com/routing/1/calculateRoute/"
            f"{urllib.parse.quote(origine)}:{urllib.parse.quote(destination)}/json?"
            + urllib.parse.urlencode({
@@ -33,7 +33,7 @@ def appeler_tomtom(origine, destination, cle):
                "travelMode": "car",
                "routeType": "fastest",
                "traffic": "true",
-               "departAt": "now",
+               "departAt": depart,
                "computeTravelTimeFor": "all",
            }))
     with urllib.request.urlopen(url, timeout=30) as reponse:
