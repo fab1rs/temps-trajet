@@ -1,4 +1,4 @@
-# Temps de trajet A → B
+# Temps de trajet A ↔ B
 
 Mesure automatiquement, du lundi au samedi, le temps de trajet en voiture toutes les 10 minutes,
 à l'aller (A → B, de 7h00 à 8h00) et au retour (B → A, de 18h00 à 19h00), heure de Paris, via l'API TomTom.
