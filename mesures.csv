@@ -1,0 +1,3 @@
+date,jour,sens,creneau,heure_mesure,reel_min,typique_min,sans_trafic_min,retard_trafic_min,distance_km
+2026-11-11,mercredi,aller,13:18,13:18:27,42.2,50.2,37.1,0.0,28.1
+2026-11-11,mercredi,retour,13:18,13:18:27,44.4,53.4,37.8,0.0,30.9
