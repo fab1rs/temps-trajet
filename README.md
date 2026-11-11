@@ -1,6 +1,6 @@
 # Temps de trajet A → B
 
-Mesure automatiquement, du lundi au vendredi, le temps de trajet en voiture toutes les 10 minutes
+Mesure automatiquement, du lundi au samedi, le temps de trajet en voiture toutes les 10 minutes
 entre 7h00 et 8h00 (heure de Paris), via l'API TomTom.
 
 Chaque mesure enregistre, pour le même départ :

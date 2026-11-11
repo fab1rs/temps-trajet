@@ -19,7 +19,7 @@ def main():
     typiques, resume = {}, None
     for decalage in range(7):
         date = demain + timedelta(days=decalage)
-        if date.weekday() > 4:
+        if date.weekday() > 5:  # pas le dimanche
             continue
         jour = JOURS[date.weekday()]
         typiques[jour] = {}

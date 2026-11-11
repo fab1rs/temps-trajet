@@ -4,8 +4,8 @@ on:
   schedule:
     # Les crons GitHub sont en UTC : un déclenchement par saison, vers 6h45 heure de Paris.
     # Le script ignore celui qui ne correspond pas à la saison en cours.
-    - cron: "45 4 * * 1-5"  # heure d'été (UTC+2)
-    - cron: "45 5 * * 1-5"  # heure d'hiver (UTC+1)
+    - cron: "45 4 * * 1-6"  # heure d'été (UTC+2)
+    - cron: "45 5 * * 1-6"  # heure d'hiver (UTC+1)
   workflow_dispatch:  # lancement manuel = une mesure immédiate, pour tester
 
 permissions:
@@ -33,8 +33,8 @@ jobs:
           DESTINATION: ${{ secrets.DESTINATION }}
         run: |
           case "${{ github.event.schedule }}" in
-            "45 4 * * 1-5") python trajet.py --session 2 ;;
-            "45 5 * * 1-5") python trajet.py --session 1 ;;
+            "45 4 * * 1-6") python trajet.py --session 2 ;;
+            "45 5 * * 1-6") python trajet.py --session 1 ;;
             *)              python trajet.py --maintenant ;;
           esac
 
